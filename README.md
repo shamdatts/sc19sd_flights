@@ -6,9 +6,13 @@ password: university1
 
 # URLS:
 'flights/query=<str:date>&<str:departureAirport>&<str:destinationAirport>/': views.query_flights
+
 'res/book/': views.create_reservation
+
 'res/query=<int:reservationId>/': views.get_reservation
+
 'res/update/query=<int:reservationId>/': views.update_reservation
+
 'res/delete/query=<int:reservationId>/': views.delete_reservation
 
 # Documentation:
