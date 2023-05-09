@@ -33,6 +33,7 @@ class Seat(models.Model):
     flightId = models.ForeignKey(FlightDetails, on_delete=models.CASCADE)
     seatNumber = models.IntegerField()
     seatPrice = models.DecimalField(decimal_places=2, max_digits=10)
+    seatTaken = models.BooleanField(default=False)
 
     def __str__(self):
         return str(self.pk)
@@ -40,6 +41,12 @@ class Seat(models.Model):
 class Reservation(models.Model):
     reservationId = models.AutoField(primary_key=True, editable=False)
     seatId = models.ForeignKey(Seat, on_delete=models.DO_NOTHING)
+    seatNumber = models.CharField(max_length=10, null=True, blank=True)
     passengerId = models.ForeignKey(Passenger, on_delete=models.DO_NOTHING)
     holdLuggage = models.BooleanField()
     paymentConfirmed = models.BooleanField()
+
+    def save(self, *args, **kwargs):
+        if self.seatId:
+            self.seatNumber = self.seatId.seatNumber
+        super(Reservation, self).save(*args, **kwargs)

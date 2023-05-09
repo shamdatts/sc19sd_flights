@@ -85,28 +85,41 @@ def create_reservation(request):
    if request.method == 'POST':
       # Parse request body as JSON
       body = json.loads(request.body)
+      print(body)
       try: 
          # Extract request parameters
          passengerId = body.get('passengerId')
-         seatId = body.get('seatId')
+         if passengerId is None:
+            print('passengerId')
+            return JsonResponse({"message": "Missing required field 'passengerId'"}, status=400)
+         passenger = Passenger.objects.get(pk=passengerId)
+         seatNumber = body.get('seatNumber')  
+         if seatNumber is None:
+            print('SeatNumber')
+            return JsonResponse({"message": "Missing required field 'seatNumber'"}, status=400)
+         print(seatNumber)
+         availableSeat = Seat.objects.get(
+            seatNumber=seatNumber  
+         )
+         if availableSeat.seatTaken == True:
+             return JsonResponse({"message": "Seat not available"}, status=409)
+         availableSeat.seatTaken = True
+         availableSeat.save()
+         print(availableSeat)
+         flightId = availableSeat.flightId.flightId
+         if flightId is None:
+            print('flightId')
+            return JsonResponse({"message": "Missing required field 'flightId'"}, status=400)
+
          holdLuggage = body.get('holdLuggage')
          paymentConfirmed = body.get('paymentConfirmed')
-
+         
          # Check if all required fields are present and valid
-         if not all([passengerId, seatId, isinstance(holdLuggage, bool), isinstance(paymentConfirmed, bool)]):
+         if not all([isinstance(holdLuggage, bool), isinstance(paymentConfirmed, bool)]):
                return JsonResponse({"message": "Fields have been incorrectly inputted."}, status=405)
-         try:
-            # Retrieve objects from database
-            #passenger = get_object_or_404(Passenger, pk=passengerId)
-            passenger = Passenger.objects.get(pk=passengerId)
-            #seat = get_object_or_404(Seat, pk=seatId)
-            seat = Seat.objects.get(pk=seatId)
-         except (ObjectDoesNotExist, ValueError):
-            # Handle exception if object does not exist or ID is not valid
-            return JsonResponse({"message": "Invalid ID(s) provided."}, status=400)
 
          # Create new reservation object and save it to database
-         reservation = Reservation(seatId=seat, 
+         reservation = Reservation(seatId=availableSeat, 
                            passengerId=passenger, 
                            holdLuggage=holdLuggage, 
                            paymentConfirmed=paymentConfirmed)
@@ -119,6 +132,10 @@ def create_reservation(request):
          data = addReservationPK(struct[0])
          # Return JSON response with the new reservation data
          return JsonResponse(data, status=200)
+      except (ObjectDoesNotExist, ValueError) as e:
+            print("IDs", e)
+            # Handle exception if object does not exist or ID is not valid
+            return JsonResponse({"message": "Invalid ID(s) provided."}, status=400)
       except: 
          return JsonResponse({"message": 'Reservation could not be created.'}, status=404) 
    else:
@@ -252,13 +269,14 @@ def addReservationPK(data):
       'flight': {
          'flightId': 'SD{}'.format(flight.flightId),
          'planeModel': flight.planeModel,
+         'numberOfRows': flight.numberOfRows,
+         'seatsPerRow': flight.seatsPerRow,
          'departureTime': flight.departureTime.isoformat(),
          'arrivalTime': flight.arrivalTime.isoformat(),
          'departureAirport': flight.departureAirport,
          'destinationAirport': flight.destinationAirport,
       },
       'seat': {
-         'seatId': 'SD{}'.format(str(seat)),
          'seatNumber': seat.seatNumber,
          'seatPrice': seat.seatPrice,
       }
@@ -305,8 +323,6 @@ def addSeatPK(data):
 
    # Construct a response dictionary with relevant information
    response = {
-        'seatId': 'SD{}'.format(seatId),
-        'flightId': 'SD{}'.format(flightId),
         'seatNumber': fields['seatNumber'],
         'seatPrice': fields['seatPrice'],
    }
