@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-6*@*l8bn9lxz&k604a%aizokj=x5l97ihx$f2g!#w3(c&5$7(a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['shamitadatta2.pythonanywhere.com', 'localhost']
 
 #Applying current UK timezone
 USE_TZ = True
