@@ -47,12 +47,9 @@ def query_flights(request, date, departureAirport, destinationAirport):#, date
 def query_flights(request, date, departureAirport, destinationAirport):#, date
   # Check if the request method is GET
    if request.method == "GET":
-      print(departureAirport)
-      print(destinationAirport)
       try: 
       #Parse the date string into a datetime object
          flight_date = datetime.strptime(date, '%Y-%m-%d')
-         print(flight_date)
       except ValueError: 
          #Return an error if the date format is invalid
          return JsonResponse({"message":"Invalid date format. Please use YYYY-MM-DD."}, status=400)
@@ -61,7 +58,6 @@ def query_flights(request, date, departureAirport, destinationAirport):#, date
       flights = FlightDetails.objects.filter(departureTime__date=flight_date,
                                              destinationAirport=destinationAirport, 
                                              departureAirport=departureAirport)
-      print(flights)
       # Return a 404 response if no flights are found
       if (len(flights) == 0):
          return JsonResponse({"message": "No flights found"}, status=404, safe=False)
@@ -85,19 +81,15 @@ def create_reservation(request):
    if request.method == 'POST':
       # Parse request body as JSON
       body = json.loads(request.body)
-      print(body)
       try: 
          # Extract request parameters
          passengerId = body.get('passengerId')
          if passengerId is None:
-            print('passengerId')
             return JsonResponse({"message": "Missing required field 'passengerId'"}, status=400)
          passenger = Passenger.objects.get(pk=passengerId)
          seatNumber = body.get('seatNumber')  
          if seatNumber is None:
-            print('SeatNumber')
             return JsonResponse({"message": "Missing required field 'seatNumber'"}, status=400)
-         print(seatNumber)
          availableSeat = Seat.objects.get(
             seatNumber=seatNumber  
          )
@@ -105,10 +97,8 @@ def create_reservation(request):
              return JsonResponse({"message": "Seat not available"}, status=409)
          availableSeat.seatTaken = True
          availableSeat.save()
-         print(availableSeat)
          flightId = availableSeat.flightId.flightId
          if flightId is None:
-            print('flightId')
             return JsonResponse({"message": "Missing required field 'flightId'"}, status=400)
 
          holdLuggage = body.get('holdLuggage')
@@ -133,9 +123,8 @@ def create_reservation(request):
          # Return JSON response with the new reservation data
          return JsonResponse(data, status=200)
       except (ObjectDoesNotExist, ValueError) as e:
-            print("IDs", e)
             # Handle exception if object does not exist or ID is not valid
-            return JsonResponse({"message": "Invalid ID(s) provided."}, status=400)
+            return JsonResponse({"message": str(e)}, status=400)
       except: 
          return JsonResponse({"message": 'Reservation could not be created.'}, status=404) 
    else:

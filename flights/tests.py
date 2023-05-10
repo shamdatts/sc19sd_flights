@@ -77,27 +77,22 @@ class CreateReservationTestCase(TestCase):
         self.assertEqual(reservation.holdLuggage, False)
         self.assertEqual(reservation.paymentConfirmed, True)
 
-    # def test_create_reservation_missing_required_fields(self):
-    #     url = reverse('create_reservation')
-    #     # Test with missing holdLuggage field
-    #     reservation_data = self.reservation_data.copy()
-    #     reservation_data.pop('holdLuggage')
-    #     response = self.client.post(url, data=json.dumps(reservation_data), content_type='application/json')
-    #     self.assertEqual(response.status_code, 400)
+    def test_create_reservation_missing_required_fields(self):
+        url = reverse('create_reservation')
+        # Test with missing holdLuggage field
+        reservation_data = self.reservation_data.copy()
+        reservation_data.pop('holdLuggage')
+        response = self.client.post(url, data=json.dumps(reservation_data), content_type='application/json')
+        self.assertEqual(response.status_code, 405)
 
-    # def test_create_reservation_invalid_ids(self):
-    #     url = reverse('create_reservation')
-    #     # Test with invalid passenger ID
-    #     reservation_data = self.reservation_data.copy()
-    #     reservation_data['passengerId'] = self.passenger.pk + 1
-    #     response = self.client.post(url, data=json.dumps(reservation_data), content_type='application/json')
-    #     print(response)
-    #     self.assertEqual(response.status_code, 400)
-    #     # Test with invalid seat ID
-    #     reservation_data = self.reservation_data.copy()
-    #     reservation_data['seatId'] = self.seat.pk + 1
-    #     response = self.client.post(url, data=json.dumps(reservation_data), content_type='application/json')
-    #     self.assertEqual(response.status_code, 400)
+    def test_create_reservation_invalid_ids(self):
+        url = reverse('create_reservation')
+        # Test with invalid passenger ID
+        reservation_data = self.reservation_data.copy()
+        reservation_data['passengerId'] = self.passenger.pk + 100
+        response = self.client.post(url, data=json.dumps(reservation_data), content_type='application/json')
+        print(response)
+        self.assertEqual(response.status_code, 400)
 
 class GetReservationTestCase(TestCase):
     def setUp(self):
