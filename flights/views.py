@@ -51,23 +51,34 @@ def create_reservation(request):
       body = json.loads(request.body)
       try: 
          # Extract request parameters
-         passengerId = body.get('passengerId')
-         if passengerId is None:
-            return JsonResponse({"message": "Missing required field 'passengerId'"}, status=400)
-         passenger = Passenger.objects.get(pk=passengerId)
+         passenger_data = body.get('passenger')
+         if passenger_data is None:
+               return JsonResponse({"message": "Missing required fields 'passenger'"}, status=400)
+
+         # Create the passenger
+         passenger = Passenger.objects.create(
+               firstName=passenger_data.get('firstName'),
+               lastName=passenger_data.get('lastName'),
+               dateOfBirth=passenger_data.get('dateOfBirth'),
+               passportNumber=passenger_data.get('passportNumber'),
+               address=passenger_data.get('address')
+         )
          seatNumber = body.get('seatNumber')  
          if seatNumber is None:
             return JsonResponse({"message": "Missing required field 'seatNumber'"}, status=400)
-         availableSeat = Seat.objects.get(
-            seatNumber=seatNumber  
-         )
-         if availableSeat.seatTaken == True:
-             return JsonResponse({"message": "Seat not available"}, status=409)
-         availableSeat.seatTaken = True
-         availableSeat.save()
-         flightId = availableSeat.flightId.flightId
+         flightId = body.get('flightId')  
          if flightId is None:
             return JsonResponse({"message": "Missing required field 'flightId'"}, status=400)
+         try:
+            seat = Seat.objects.get(seatNumber=seatNumber, flightId=flightId)
+         except Seat.DoesNotExist:
+            return JsonResponse({"message": "Seat not found for the specified flight"}, status=404)
+
+         if seat.seatTaken:
+            return JsonResponse({"message": "Seat not available"}, status=409)
+
+         seat.seatTaken = True
+         seat.save()
 
          holdLuggage = body.get('holdLuggage')
          paymentConfirmed = body.get('paymentConfirmed')
@@ -77,7 +88,7 @@ def create_reservation(request):
                return JsonResponse({"message": "Fields have been incorrectly inputted."}, status=405)
 
          # Create new reservation object and save it to database
-         reservation = Reservation(seatId=availableSeat, 
+         reservation = Reservation(seatId=seat, 
                            passengerId=passenger, 
                            holdLuggage=holdLuggage, 
                            paymentConfirmed=paymentConfirmed)
