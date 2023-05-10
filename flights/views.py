@@ -9,38 +9,6 @@ import json
 from datetime import datetime
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from rest_framework.decorators import api_view
-
-# Querying Flights
-@api_view(['GET'])
-def query_flights(request, date, departureAirport, destinationAirport):#, date
-  # Check if the request method is GET
-   if request.method == "GET":
-      try: 
-      #Parse the date string into a datetime object
-         flight_date = datetime.strptime(date, '%Y-%m-%d')
-      except ValueError: 
-         #Return an error if the date format is invalid
-         return JsonResponse({"message":"Invalid date format. Please use YYYY-MM-DD."}, status=400)
-      
-      # Query the Flight model for flights with the specified date, departure airport, and destination airport
-      flights = FlightDetails.objects.filter(departureTime__date=flight_date,
-                                             destinationAirport=destinationAirport, 
-                                             departureAirport=departureAirport)
-      # Return a 404 response if no flights are found
-      if (len(flights) == 0):
-         return JsonResponse({"message": "No flights found"}, status=404, safe=False)
-
-      # Serialize the flights queryset into a JSON string
-      data = serializers.serialize('json', flights)
-      # Load the JSON data into a Python data structure
-      struct = json.loads(data)
-      # Add a primary key field to the first flight in the data structure
-      data = addFlightPK(struct[0])
-      # Return a JSON response with the flight data
-      return JsonResponse(data, status=200)
-   else:
-      # Return a 405 response if the request method is not GET
-      return JsonResponse({"message": "Validation Exception"}, status=405)
    
 # Querying Flights
 @api_view(['GET'])
@@ -61,7 +29,7 @@ def query_flights(request, date, departureAirport, destinationAirport):#, date
       # Return a 404 response if no flights are found
       if (len(flights) == 0):
          return JsonResponse({"message": "No flights found"}, status=404, safe=False)
-      
+
       # Serialize the flights queryset into a JSON string
       data = serializers.serialize('json', flights)
       # Load the JSON data into a Python data structure
