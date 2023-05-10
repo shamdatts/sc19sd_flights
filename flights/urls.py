@@ -25,4 +25,5 @@ urlpatterns = [
     path('res/query=<int:reservationId>/', views.get_reservation, name="get_reservation"),
     path('res/update/query=<int:reservationId>/', views.update_reservation, name="update_reservation"),
     path('res/delete/query=<int:reservationId>/', views.delete_reservation, name="delete_reservation"),
+    path('res/confirm/query=<int:reservationId>/', views.confirm_reservation, name="confirm_reservation"),
 ]

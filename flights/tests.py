@@ -260,3 +260,47 @@ class DeleteReservationTestCase(TestCase):
         response = self.client.get(reverse('delete_reservation', kwargs={'reservationId': self.reservation.pk}))
         self.assertEqual(response.status_code, 405)
         self.assertTrue(Reservation.objects.filter(pk=self.reservation.pk).exists())
+
+
+class ConfirmReservationTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        # Create test objects
+        self.flight = FlightDetails.objects.create(planeModel='Boeing 747',
+                                            numberOfRows=35,
+                                            seatsPerRow=6,
+                                            departureTime=timezone.make_aware(datetime(2023, 5, 12, 5, 15)),
+                                            arrivalTime=timezone.make_aware(datetime(2023, 5, 12, 8, 15)),
+                                            departureAirport='BHD',
+                                            destinationAirport='CCU')
+        self.passenger = Passenger.objects.create(firstName='John', 
+                                                  lastName='Doe', 
+                                                  dateOfBirth=date(2000, 1, 1), 
+                                                  passportNumber=12345678, 
+                                                  address="1 London Road London LL1 0XX")
+        self.seat = Seat.objects.create(seatNumber='1', 
+                                        seatPrice='45', 
+                                        flightId=self.flight,
+                                        seatTaken=False)
+        self.reservation = Reservation.objects.create(passengerId=self.passenger, 
+                                                      seatId=self.seat, 
+                                                      holdLuggage=False, 
+                                                      paymentConfirmed=False) 
+        self.flight.save()
+        self.passenger.save()
+        self.seat.save()
+        self.reservation.save()
+
+    def test_confirm_reservation_success(self):
+        response = self.client.put(reverse('confirm_reservation', kwargs={'reservationId': self.reservation.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.reservation.refresh_from_db()
+        self.assertTrue(self.reservation.paymentConfirmed)
+
+    def test_confirm_reservation_not_found(self):
+        response = self.client.put(reverse('confirm_reservation', kwargs={'reservationId': 999}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_confirm_reservation_not_allowed(self):
+        response = self.client.get(reverse('confirm_reservation', kwargs={'reservationId': self.reservation.pk}))
+        self.assertEqual(response.status_code, 405)
