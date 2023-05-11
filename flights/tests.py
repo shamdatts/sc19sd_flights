@@ -2,7 +2,10 @@ from django.test import TestCase, Client
 from datetime import datetime, date
 from flights.models import FlightDetails, Passenger, Reservation, Seat
 from django.utils import timezone
+from django.core import serializers
 import json
+from rest_framework.test import APIClient
+from rest_framework import status
 from django.urls import reverse
 
 class QueryFlightsTestCase(TestCase):
@@ -186,7 +189,8 @@ class UpdateReservationTestCase(TestCase):
                                                   address="1 London Road London LL1 0XX")
         self.seat = Seat.objects.create(seatNumber='1', 
                                         seatPrice='45', 
-                                        flightId=self.flight)
+                                        flightId=self.flight,
+                                        seatTaken=True)
         self.reservation = Reservation.objects.create(passengerId=self.passenger, 
                                                       seatId=self.seat, 
                                                       holdLuggage=False, 
@@ -197,36 +201,56 @@ class UpdateReservationTestCase(TestCase):
         self.seat.save()
         self.reservation.save()
 
-    def test_update_reservation_success(self):
-        url = reverse('update_reservation', args=[self.reservation.pk])
-        new_seat = Seat.objects.create(seatNumber='2', seatPrice='60', flightId=self.flight)
-        new_passenger = Passenger.objects.create(firstName='Jane', lastName='Doe', dateOfBirth=date(2001, 1, 1), passportNumber=87654321, address="2 London Road London LL1 0XX")
-        data = {
-            'seatId': new_seat.pk,
-            'passengerId': new_passenger.pk,
-            'holdLuggage': True,
-            'paymentConfirmed': False
+    def test_update_reservation(self):
+        reservation_id = self.reservation.pk
+        url = reverse('update_reservation', args=[reservation_id])
+        request_body = {
+            'seatId': self.seat.pk,
+            'flightId': self.flight.pk,
+            'passenger': {
+                'passengerId': self.passenger.pk,
+                'firstName': 'Jane',
+                'lastName': 'Doe',
+                'dateOfBirth': '1995-01-01',
+                'passportNumber': '23456789',
+                'address': '456 Street, City'
+            },
+            'holdLuggage': False,
+            'paymentConfirmed': True
         }
-        response = self.client.put(url, data=json.dumps(data), content_type='application/json')
+        response = self.client.put(
+            url,
+            data=json.dumps(request_body),
+            content_type='application/json'
+        )
+        print(response)
         self.assertEqual(response.status_code, 200)
-        # Verify that the reservation was updated
-        reservation = Reservation.objects.get(pk=self.reservation.pk)
-        self.assertEqual(reservation.seatId, new_seat)
-        self.assertEqual(reservation.passengerId, new_passenger)
-        self.assertEqual(reservation.holdLuggage, True)
-        self.assertEqual(reservation.paymentConfirmed, False)
-
-    def test_update_reservation_invalid_request_body(self):
-        url = reverse('update_reservation', args=[self.reservation.pk])
-        data = {}
-        response = self.client.put(url,  data=json.dumps(data), content_type='application/json')
-        self.assertEqual(response.status_code, 400)
+        updated_reservation = Reservation.objects.get(pk=reservation_id)
+        # Assert the updated values
+        self.assertEqual(updated_reservation.seatId, self.seat)
+        self.assertEqual(updated_reservation.passengerId, self.passenger)
+        self.assertEqual(updated_reservation.holdLuggage, False)
+        self.assertEqual(updated_reservation.paymentConfirmed, True)
+        # Assert the updated passenger details
+        updated_passenger = Passenger.objects.get(pk=self.passenger.pk)
+        self.assertEqual(updated_passenger.firstName, 'Jane')
+        self.assertEqual(updated_passenger.lastName, 'Doe')
+        self.assertEqual(str(updated_passenger.dateOfBirth), '1995-01-01')
+        self.assertEqual(str(updated_passenger.passportNumber), '23456789')
+        self.assertEqual(updated_passenger.address, '456 Street, City')
 
     def test_update_reservation_seat_not_found(self):
         url = reverse('update_reservation', args=[self.reservation.pk])
         data = {
             'seatId': 1000,  # This ID doesn't exist
-            'passengerId': self.passenger.pk,
+            'passenger': {
+                'passengerId': self.passenger.pk,
+                'firstName': 'John',
+                'lastName': 'Doe',
+                'dateOfBirth': '1990-01-01',
+                'passportNumber': 'ABC123',
+                'address': '123 Main St'
+            },
             'holdLuggage': True,
             'paymentConfirmed': False
         }
@@ -237,7 +261,14 @@ class UpdateReservationTestCase(TestCase):
         url = reverse('update_reservation', args=[self.reservation.pk])
         data = {
             'seatId': self.seat.pk,
-            'passengerId': 1000,  # This ID doesn't exist
+            'passenger': {
+                'passengerId': 1000,  # This ID doesn't exist
+                'firstName': 'John',
+                'lastName': 'Doe',
+                'dateOfBirth': '1990-01-01',
+                'passportNumber': 'ABC123',
+                'address': '123 Main St'
+            },
             'holdLuggage': True,
             'paymentConfirmed': False
         }

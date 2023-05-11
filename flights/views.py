@@ -148,12 +148,42 @@ def update_reservation(request, reservationId):
          # Parse the request body as JSON
          body = json.loads(request.body)
          # Update the reservation with the new data
-         reservation.seatId = Seat.objects.get(pk=body['seatId'])
-         reservation.passengerId = Passenger.objects.get(pk=body['passengerId'])
-         reservation.holdLuggage = body['holdLuggage']
-         reservation.paymentConfirmed = body['paymentConfirmed']
+         if 'seatId' in body:
+            try:
+               seat = Seat.objects.get(pk=body['seatId'])
+               if 'flightId' in body:
+                     flight_id = body['flightId']
+                     try:
+                        flight = FlightDetails.objects.get(pk=flight_id)
+                        seat.flightId = flight
+                        seat.save()
+                     except FlightDetails.DoesNotExist:
+                        return JsonResponse({"message": "Flight not found"}, status=404)
+               reservation.seatId = seat
+            except Seat.DoesNotExist:
+         # Return 404 if the seat ID in the request body is not found
+               return JsonResponse({"message":"Seat not found"}, status=404)
+         if 'passenger' in body:
+               passenger_details = body['passenger']
+               passenger_id = passenger_details['passengerId']
+               passenger = Passenger.objects.get(pk=passenger_id)
+               if 'firstName' in passenger_details:
+                  passenger.firstName = passenger_details['firstName']
+               if 'lastName' in passenger_details:
+                  passenger.lastName = passenger_details['lastName']
+               if 'dateOfBirth' in passenger_details:
+                  passenger.dateOfBirth = passenger_details['dateOfBirth']
+               if 'passportNumber' in passenger_details:
+                  passenger.passportNumber = passenger_details['passportNumber']
+               if 'address' in passenger_details:
+                  passenger.address = passenger_details['address']
+               passenger.save()
+               reservation.passengerId_id = passenger_id
+         if 'holdLuggage' in body:
+            reservation.holdLuggage = body['holdLuggage']
+         if 'paymentConfirmed' in body:
+            reservation.paymentConfirmed = body['paymentConfirmed']
          reservation.save()
-
          # Serialize the updated reservation data
          data = serializers.serialize('json', [reservation,])
          struct = json.loads(data)
@@ -162,9 +192,6 @@ def update_reservation(request, reservationId):
          data = addReservationPK(struct[0])
          # return the JSON response with the updated reservation data and a success status code
          return JsonResponse(data, status=200)
-      except Seat.DoesNotExist:
-         # Return 404 if the seat ID in the request body is not found
-         return JsonResponse({"message":"Seat not found"}, status=404)
       except Passenger.DoesNotExist:
          # Return 404 if the passenger ID in the request body is not found
          return JsonResponse({"message":"Passenger not found"}, status=404)
@@ -257,7 +284,7 @@ def addFlightPK(data):
    fields = data['fields']
    flightId = data['pk']
 
-   seats = Seat.objects.filter(flightId=flightId)
+   seats = Seat.objects.filter(flightId=flightId, seatTaken=False)
 
    # Construct a response dictionary with relevant information
    response = {
@@ -275,7 +302,7 @@ def addFlightPK(data):
    for seat in seats:
       seat_data = {
          'seatNumber': seat.seatNumber,
-         'seatPrice': str(seat.seatPrice)
+         'seatPrice': str(seat.seatPrice),
       }
       response['seats'].append(seat_data)
 

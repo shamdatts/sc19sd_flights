@@ -41,7 +41,6 @@ class Seat(models.Model):
 class Reservation(models.Model):
     reservationId = models.AutoField(primary_key=True, editable=False)
     seatId = models.ForeignKey(Seat, on_delete=models.DO_NOTHING)
-    seatNumber = models.CharField(max_length=10, null=True, blank=True)
     passengerId = models.ForeignKey(Passenger, on_delete=models.DO_NOTHING)
     holdLuggage = models.BooleanField()
     paymentConfirmed = models.BooleanField()
